@@ -1,38 +1,17 @@
 #include <iostream>
 #include <cstring>
 #include <ctime>
-#include <iomanip>
-#include <sstream>
-#include <vector>
-#include <openssl/md5.h>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 const int DATA_SIZE = 1024*1024; //数据大小
-const int NUM_TESTS = 10000; //测试次数
-
-//计算MD5值
-string md5(const char* data, int size) {
-    unsigned char md[MD5_DIGEST_LENGTH];
-    MD5((const unsigned char*)data, size, md);
-
-    stringstream ss;
-    for(int i = 0; i < MD5_DIGEST_LENGTH; i++) {
-        ss << hex << setw(2) << setfill('0') << (int)md[i];
-    }
-    return ss.str();
-}
 
 //发送数据
 void send_data() {
     char data[DATA_SIZE];
     memset(data, 'a', DATA_SIZE);
-    string md5_value = md5(data, DATA_SIZE);
-
-    //将数据和md5值打包
-    vector<char> buffer(DATA_SIZE + md5_value.size());
-    memcpy(buffer.data(), data, DATA_SIZE);
-    memcpy(buffer.data() + DATA_SIZE, md5_value.c_str(), md5_value.size());
 
     //发送数据包
     //...
@@ -41,18 +20,24 @@ void send_data() {
 //接收数据
 void receive_data() {
     char data[DATA_SIZE];
-    //接收数据包
-    //...
+    int num_received = 0;
+    double prev_time = 0;
 
-    //解析数据包
-    vector<char> buffer(DATA_SIZE + MD5_DIGEST_LENGTH);
-    memcpy(buffer.data(), data, DATA_SIZE + MD5_DIGEST_LENGTH);
-    char* md5_value = buffer.data() + DATA_SIZE;
-    string received_md5_value = md5(data, DATA_SIZE);
+    while(true) {
+        //接收数据包
+        //...
 
-    //判断md5值是否一致
-    if(strcmp(md5_value, received_md5_value.c_str()) != 0) {
-        cout << "Error: MD5 value does not match!" << endl;
+        num_received++;
+        double current_time = duration_cast<duration<double>>(high_resolution_clock::now().time_since_epoch()).count();
+
+        //计算吞吐量
+        if(current_time - prev_time >= 1) {
+            double throughput = num_received * DATA_SIZE * 8 / (current_time - prev_time) / 1000000;
+            cout << "Throughput: " << throughput << " Mbps" << endl;
+
+            prev_time = current_time;
+            num_received = 0;
+        }
     }
 }
 
